@@ -21,7 +21,8 @@ BUILD		:= build
 SOURCES		:= source
 SOURCES		+= source/unzip
 DATA		:= data
-INCLUDES	:= include ../fatfs
+INCLUDES	:= include ../fatfs \
+		   lib/libxml2/include lib/libxml++ lib/libxml++/libxml++
 
 #---------------------------------------------------------------------------------
 # options for code generation
@@ -38,7 +39,7 @@ LDFLAGS	= -g $(MACHDEP) -Wl,-Map,$(notdir $@).map,-wrap,wiiuse_register
 #---------------------------------------------------------------------------------
 # any extra libraries we wish to link with the project
 #---------------------------------------------------------------------------------
-LIBS	:= -lfreetype -lpngu -lpng -lz \
+LIBS	:= -lxml++ -lxml2 -lfreetype -lpngu -lpng -lz \
 	   -lwiiuse -lwiidrc -lwupc -lbte -lfatfs-ppc -logc -ldi -lm
 
 #---------------------------------------------------------------------------------
@@ -48,7 +49,7 @@ LIBS	:= -lfreetype -lpngu -lpng -lz \
 LIBDIRS	= $(CURDIR)/extlibs
 # NOTE: FatFS doesn't use the standard [component]/lib structure,
 # so we'll add a -L ourselves.
-LDFLAGS	+= -L$(CURDIR)/../../fatfs
+LDFLAGS	+= -L$(CURDIR)/../../fatfs -L$(CURDIR)/lib/libxml2 -L$(CURDIR)/lib/libxml++
 
 #---------------------------------------------------------------------------------
 # no real need to edit anything past this point unless you need to add additional
@@ -103,7 +104,19 @@ export OUTPUT	:=	$(CURDIR)/$(TARGET)
 .PHONY: $(BUILD) clean
 
 #---------------------------------------------------------------------------------
-$(BUILD):
+# XML library build targets
+#---------------------------------------------------------------------------------
+LIB_XML2 := $(CURDIR)/lib/libxml2/libxml2.a
+LIB_XMLXX := $(CURDIR)/lib/libxml++/libxml++.a
+
+$(LIB_XML2):
+	@$(MAKE) --no-print-directory -C $(CURDIR)/lib/libxml2
+
+$(LIB_XMLXX): $(LIB_XML2)
+	@$(MAKE) --no-print-directory -C $(CURDIR)/lib/libxml++
+
+#---------------------------------------------------------------------------------
+$(BUILD): $(LIB_XML2) $(LIB_XMLXX)
 	@[ -d $@ ] || mkdir -p $@
 	@$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
 	@cp $(OUTPUT).dol ../nintendont/boot.dol
@@ -112,6 +125,8 @@ $(BUILD):
 clean:
 	@echo clean ...
 	-$(RM) -rf $(BUILD) $(OUTPUT).elf $(OUTPUT).dol
+	@$(MAKE) --no-print-directory -C $(CURDIR)/lib/libxml2 clean
+	@$(MAKE) --no-print-directory -C $(CURDIR)/lib/libxml++ clean
 
 
 #---------------------------------------------------------------------------------
